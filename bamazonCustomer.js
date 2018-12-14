@@ -18,81 +18,95 @@
 // * If this activity took you between 8-10 hours, then you've put enough time into this assignment. Feel free to stop here -- unless you want to take on the next challenge.
 // - - -
 
-// var Table = require('cli-table');
-
-// var table = new Table({
-//     head: ['TH 1 label', 'TH 2 label']
-//   , colWidths: [100, 200]
-// });
-
-// // table is an Array, so you can `push`, `unshift`, `splice` and friends
-// table.push(
-//     ['First value', 'Second value']
-//   , ['First value', 'Second value']
-// );
-
 var inquirer = require("inquirer");
 var mysql = require("mysql");
 const cTable = require('console.table');
 
 // connection info for dql db
 var connection = mysql.createConnection({
-    host: "localhost",
-    port: 3306,
-    user: "root",
-    password: "Karoly!1",
-    database: "bamazon_db"
+  host: "localhost",
+  port: 3306,
+  user: "root",
+  password: "Karoly!1",
+  database: "bamazon_db"
 });
 
 // connect to mysql & sql db
 connection.connect(function (err) {
-    if (err) throw err;
-    console.log("connected");
-    afterConnection();
+  if (err) throw err;
+  console.log("connected");
+  afterConnection();
 });
-function afterConnection() {
-    connection.query("SELECT * FROM product", function(err, res) {
-      if (err) throw err;
-      console.table(res);
-      connection.end();
-    });
-  }
 
-  // Starts the server to begin listening
+// render table
+function afterConnection() {
+  connection.query("SELECT * FROM product", function (err, res) {
+    if (err) throw err;
+    console.table(res);
+    // connection.end();   
+    buyProduct();
+  });
+}
+
+function buyProduct() {
+  connection.query("SELECT * FROM product", function (err, res) {
+    if (err) throw err;
+    inquirer.prompt([{
+      name: "itemId",
+      type: "rawlist",
+      choices: function (res) {
+        var itemIdArray = [];
+        for (var i = 0; i < res.length; i++) {
+          itemIdArray.push(res[i].item_Id);
+        }
+        return itemIdArray;
+      },
+      message: "Enter the item id of the production you wish to buy.",
+    },
+    {
+      name: "quanity",
+      type: "rawlist",
+      message: "How many would you like to buy?"
+    }
+    ]).then(function(answer) {
+      var chosenItem;
+      for (var i = 0; i < res.length; i++) {
+        if (res[i].item_id === answer.itemId) {
+          chosenItem = res[i];
+        }
+      }
+      // determine if there is enough inventory
+      if (chosenItem.stock_qty < parseInt(answer.quanity)) {
+      connection.query(
+        "UPDATE product SET ? Where?",
+          [
+            {
+              stock_qty: answer.quantity
+            },
+            {
+              item_id: chosenItem.item_id
+            }
+          ],
+          function (err) {
+            if (err) throw err;
+            console.log("Item successfully purchased!");
+            console.log("Your total purchase price is " + price * quanity);
+            afterConnection();
+          }
+        );
+      }
+      else {
+        console.log("Current inventory is too low. Please choose another item, or check back later.")
+        buyProduct();
+      }
+    });
+  });
+}
+
+// connection.end();   
+
+// Starts the server to begin listening
 // =============================================================
 // app.listen(PORT, function() {
 //     console.log("App listening on PORT " + PORT);
 //   });
-
-
-// function start() {
-//     inquirer.prompt([{
-//         name: "action",
-//         type: "rawlist",
-//         message: "What would you like to do?",
-//         choices: ["View products", "Purchase products"],
-//     }]).then(function () {
-//         // switch (response.options) {
-//             // case "View products for sale":
-//             //     console.log("connecting");
-//             //     console.table();
-//             connection.query("SELECT * FROM product", {
-//                 console.log("price");
-//                 },
-//             function (err, res) {
-//             if (err) throw err;
-//             // connection.end();
-
-//             // console.log(price);
-//             // console.log('There are currently ${res[0].stock_qty} in stock');
-//             // for (i = 0; i, res.length; i++) {
-//             //     console.log("Item number: " + res[i].item_id);
-//             //     console.log("Item name: " + res[i].prod_name);
-//             //     console.log("Price per unit: " + res[i].price);
-//             //     console.log("Quanity remaining: " + res[i].stock_qty);
-//         }
-//     })
-// }
-// //     });
-// // }
-// // connection.end();    
